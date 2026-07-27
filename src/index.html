@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JSON Tree Editor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-left { display: flex; flex-direction: column; gap: 2px; }
+    h1 { font-size: 1.15rem; font-weight: 600; color: #fff; letter-spacing: -0.3px; }
+
+    #file-label {
+      font-size: 0.75rem;
+      color: #4a5070;
+    }
+
+    .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .btn-secondary {
+      background: #1e2130;
+      color: #a0a8c0;
+      border: 1px solid #2a2f45;
+    }
+    .btn-secondary:hover { background: #252a3d; color: #c0c8e0; }
+
+    .btn-primary {
+      background: #4f6ef7;
+      color: #fff;
+    }
+    .btn-primary:hover { background: #3d5ce6; }
+
+    /* ── Tree ── */
+    #tree { display: flex; flex-direction: column; gap: 6px; }
+
+    .node-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .node {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #1a1d2e;
+      border: 1px solid #252a3d;
+      border-radius: 10px;
+      padding: 10px 12px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      cursor: default;
+      user-select: none;
+    }
+    .node:hover { border-color: #353a55; }
+
+    /* Drag states */
+    .node.dragging          { opacity: 0.35; }
+    .node.drag-over-top    { border-top: 2px solid #4f6ef7; }
+    .node.drag-over-bottom { border-bottom: 2px solid #4f6ef7; }
+    .node.drag-over-child  { border: 1px solid #4f6ef7; box-shadow: 0 0 0 2px rgba(79,110,247,0.2); }
+
+    /* Depth colour bars */
+    .indent-bar { width: 3px; height: 28px; border-radius: 2px; flex-shrink: 0; }
+    .depth-0 .indent-bar { background: transparent; }
+    .depth-1 .indent-bar { background: #4f6ef7; opacity: 0.7; }
+    .depth-2 .indent-bar { background: #9f6ef7; opacity: 0.7; }
+    .depth-3 .indent-bar { background: #ef6fa0; opacity: 0.7; }
+    .depth-4 .indent-bar { background: #f7a050; opacity: 0.7; }
+
+    .drag-handle {
+      color: #3a3f5c;
+      cursor: grab;
+      font-size: 1rem;
+      padding: 2px 4px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .drag-handle:hover { color: #6070a0; background: #1e2338; }
+    .drag-handle:active { cursor: grabbing; }
+
+    .collapse-btn {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #5060a0;
+      font-size: 0.7rem;
+      background: #1e2338;
+      flex-shrink: 0;
+      transition: color 0.15s, background 0.15s;
+    }
+    .collapse-btn:hover { color: #8090c0; background: #252a3d; }
+    .collapse-btn.hidden { opacity: 0; pointer-events: none; }
+
+    .key-input {
+      background: #13162a;
+      border: 1px solid #2a2f45;
+      border-radius: 6px;
+      color: #7eb3ff;
+      font-size: 0.85rem;
+      padding: 4px 8px;
+      width: 140px;
+      font-weight: 500;
+      transition: border-color 0.15s;
+    }
+    .key-input:focus { outline: none; border-color: #4f6ef7; }
+
+    .colon { color: #4a5070; font-weight: 600; flex-shrink: 0; }
+
+    .type-select {
+      background: #13162a;
+      border: 1px solid #2a2f45;
+      border-radius: 6px;
+      color: #a0a8c0;
+      font-size: 0.78rem;
+      padding: 4px 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color 0.15s;
+    }
+    .type-select:focus { outline: none; border-color: #4f6ef7; }
+
+    .value-input {
+      background: #13162a;
+      border: 1px solid #2a2f45;
+      border-radius: 6px;
+      color: #e0d080;
+      font-size: 0.85rem;
+      padding: 4px 8px;
+      flex: 1;
+      min-width: 60px;
+      transition: border-color 0.15s;
+    }
+    .value-input:focus { outline: none; border-color: #4f6ef7; }
+    .value-input:disabled { color: #4a5070; font-style: italic; cursor: default; }
+
+    .node-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+    .icon-btn {
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background 0.15s, color 0.15s;
+      border: none;
+      background: transparent;
+      color: #4a5070;
+    }
+    .icon-btn:hover         { background: #1e2338; color: #8090c0; }
+    .icon-btn.delete:hover  { background: #2d1a1a; color: #e06060; }
+
+    /* ── Hint ── */
+    .hint {
+      text-align: center;
+      color: #3a3f5c;
+      font-size: 0.82rem;
+      margin-top: 48px;
+    }
+
+    /* ── Preview panel ── */
+    #preview-panel {
+      display: none;
+      position: fixed;
+      right: 24px;
+      top: 24px;
+      bottom: 24px;
+      width: 340px;
+      background: #13162a;
+      border: 1px solid #252a3d;
+      border-radius: 12px;
+      overflow: hidden;
+      flex-direction: column;
+      z-index: 100;
+    }
+    #preview-panel.visible { display: flex; }
+
+    .preview-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #1e2338;
+      font-size: 0.78rem;
+      color: #6070a0;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .preview-close { cursor: pointer; }
+    .preview-close:hover { color: #a0b0d0; }
+
+    #preview-content {
+      padding: 16px;
+      font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+      font-size: 0.8rem;
+      line-height: 1.6;
+      overflow-y: auto;
+      flex: 1;
+      white-space: pre;
+      color: #c0c8e0;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: #1e2338;
+      color: #c0c8e0;
+      border: 1px solid #2a2f45;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 0.82rem;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <h1>JSON Tree Editor</h1>
+    <span id="file-label">No file open</span>
+  </div>
+  <div class="actions">
+    <button class="btn-secondary" id="btn-open" onclick="openJSON()">Open JSON</button>
+    <button class="btn-secondary" onclick="addRootNode()">+ Add field</button>
+    <button class="btn-secondary" onclick="togglePreview()">Preview</button>
+    <button class="btn-secondary" onclick="clearAll()">Clear</button>
+    <button class="btn-primary" onclick="saveJSON()">Save JSON</button>
+  </div>
+</header>
+
+<div id="tree"></div>
+<p class="hint" id="hint">Add your first field to get started</p>
+
+<div id="preview-panel">
+  <div class="preview-header">
+    <span>JSON output</span>
+    <span class="preview-close" onclick="togglePreview()">x</span>
+  </div>
+  <pre id="preview-content"></pre>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── Data model ────────────────────────────────────────────────────────────
+  //
+  // Each node represents one key-value pair in the JSON.
+  // Nesting is expressed through parentId: a node with parentId === null
+  // lives at the root level; a node with parentId === X is a child of X.
+  //
+  // node shape:
+  //   { id, parentId, key, type, value, collapsed }
+  //
+  // Supported types: string | number | boolean | null | object | array
+  // "object" and "array" are container types -- they have children, no value.
+
+  let nodes = [];
+  let nextId = 1;
+  let currentFilePath = null; // used by the Tauri save/open flow
+
+  function createNode(parentId = null) {
+    return { id: nextId++, parentId, key: '', type: 'string', value: '', collapsed: false };
+  }
+
+  function getChildren(parentId) {
+    return nodes.filter(n => n.parentId === parentId);
+  }
+
+  // Returns all descendants of a node (children, grandchildren, ...).
+  function getDescendants(id) {
+    const children = getChildren(id);
+    return children.flatMap(c => [c, ...getDescendants(c.id)]);
+  }
+
+  // Counts how many levels deep a node sits.
+  function getDepth(id) {
+    let depth = 0;
+    let node = nodes.find(n => n.id === id);
+    while (node && node.parentId !== null) {
+      depth++;
+      node = nodes.find(n => n.id === node.parentId);
+    }
+    return depth;
+  }
+
+  // ── JSON serialisation ────────────────────────────────────────────────────
+  //
+  // Walks the node tree starting from parentId and returns a plain JS object
+  // that mirrors the structure the user has built.
+
+  function buildJSON(parentId = null) {
+    const children = getChildren(parentId);
+    if (children.length === 0) return parentId === null ? {} : undefined;
+
+    const obj = {};
+    for (const child of children) {
+      const key = child.key || `field_${child.id}`;
+
+      if (child.type === 'object') {
+        obj[key] = buildJSON(child.id) ?? {};
+      } else if (child.type === 'array') {
+        obj[key] = getChildren(child.id).map(c => {
+          if (c.type === 'object') return buildJSON(c.id) ?? {};
+          return castValue(c.value, c.type);
+        });
+      } else {
+        obj[key] = castValue(child.value, child.type);
+      }
+    }
+    return obj;
+  }
+
+  function castValue(val, type) {
+    if (type === 'number')  return isNaN(+val) ? 0 : +val;
+    if (type === 'boolean') return val === 'true' || val === true;
+    if (type === 'null')    return null;
+    return val;
+  }
+
+  // ── JSON deserialisation ──────────────────────────────────────────────────
+  //
+  // Converts a plain JS object back into the flat node list.
+  // Called when the user opens an existing JSON file.
+
+  function loadFromJSON(obj, parentId) {
+    if (obj === null || typeof obj !== 'object') return;
+
+    for (const [key, value] of Object.entries(obj)) {
+      const node = createNode(parentId);
+      node.key = key;
+
+      if (value === null) {
+        node.type = 'null';
+        node.value = 'null';
+      } else if (Array.isArray(value)) {
+        node.type = 'array';
+        nodes.push(node);
+        value.forEach((item, i) => {
+          if (item !== null && typeof item === 'object') {
+            const child = createNode(node.id);
+            child.key = String(i);
+            child.type = 'object';
+            nodes.push(child);
+            loadFromJSON(item, child.id);
+          } else {
+            const child = createNode(node.id);
+            child.key = String(i);
+            child.type = typeof item === 'number' ? 'number'
+                       : typeof item === 'boolean' ? 'boolean'
+                       : 'string';
+            child.value = String(item);
+            nodes.push(child);
+          }
+        });
+        continue; // already pushed
+      } else if (typeof value === 'object') {
+        node.type = 'object';
+        nodes.push(node);
+        loadFromJSON(value, node.id);
+        continue; // already pushed
+      } else if (typeof value === 'number') {
+        node.type = 'number';
+        node.value = String(value);
+      } else if (typeof value === 'boolean') {
+        node.type = 'boolean';
+        node.value = String(value);
+      } else {
+        node.type = 'string';
+        node.value = String(value);
+      }
+
+      nodes.push(node);
+    }
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  function render() {
+    const tree = document.getElementById('tree');
+    tree.innerHTML = '';
+
+    const rootNodes = getChildren(null);
+    document.getElementById('hint').style.display = rootNodes.length === 0 ? 'block' : 'none';
+
+    for (const node of rootNodes) {
+      tree.appendChild(renderNode(node));
+    }
+
+    updatePreview();
+  }
+
+  function renderNode(node) {
+    const depth       = getDepth(node.id);
+    const children    = getChildren(node.id);
+    const isContainer = node.type === 'object' || node.type === 'array';
+
+    // Outer wrapper -- indented by depth so children appear visually nested.
+    const wrapper = document.createElement('div');
+    wrapper.className = 'node-wrapper';
+    wrapper.dataset.id = node.id;
+    wrapper.style.marginLeft = depth * 24 + 'px';
+
+    // The visible row.
+    const div = document.createElement('div');
+    div.className = `node depth-${Math.min(depth, 4)}`;
+    div.draggable = true;
+    div.dataset.id = node.id;
+
+    // Colour bar on the left -- its colour changes with depth.
+    const bar = document.createElement('div');
+    bar.className = 'indent-bar';
+
+    // Drag handle.
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.title = 'Drag to move';
+    handle.textContent = '⠇'; // braille pattern dots-1234567 (six-dot handle)
+
+    // Collapse/expand button (only shown for containers that have children).
+    const collapseBtn = document.createElement('div');
+    collapseBtn.className = `collapse-btn ${!isContainer || children.length === 0 ? 'hidden' : ''}`;
+    collapseBtn.textContent = node.collapsed ? '>' : 'v';
+    collapseBtn.title = node.collapsed ? 'Expand' : 'Collapse';
+    collapseBtn.onclick = () => { node.collapsed = !node.collapsed; render(); };
+
+    // Key field.
+    const keyInput = document.createElement('input');
+    keyInput.className = 'key-input';
+    keyInput.value = node.key;
+    keyInput.placeholder = 'key';
+    keyInput.oninput = e => { node.key = e.target.value; updatePreview(); };
+
+    const colon = document.createElement('span');
+    colon.className = 'colon';
+    colon.textContent = ':';
+
+    // Type selector.
+    const typeSelect = document.createElement('select');
+    typeSelect.className = 'type-select';
+    ['string', 'number', 'boolean', 'null', 'object', 'array'].forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t;
+      opt.textContent = t;
+      if (t === node.type) opt.selected = true;
+      typeSelect.appendChild(opt);
+    });
+    typeSelect.onchange = e => {
+      const oldType = node.type;
+      node.type = e.target.value;
+      // If we switch from a container type to a leaf type, remove all children.
+      if ((oldType === 'object' || oldType === 'array') &&
+          node.type !== 'object' && node.type !== 'array') {
+        const ids = getDescendants(node.id).map(d => d.id);
+        nodes = nodes.filter(n => !ids.includes(n.id));
+      }
+      render();
+    };
+
+    // Value field -- disabled for containers (they hold children, not a value).
+    const valueInput = document.createElement('input');
+    valueInput.className = 'value-input';
+    valueInput.disabled = isContainer;
+    valueInput.value = isContainer ? '' : node.value;
+    valueInput.placeholder = isContainer
+      ? `{ ${children.length} ${children.length === 1 ? 'field' : 'fields'} }`
+      : node.type === 'boolean' ? 'true / false' : 'value';
+    valueInput.oninput = e => { node.value = e.target.value; updatePreview(); };
+
+    // Per-node action buttons.
+    const actions = document.createElement('div');
+    actions.className = 'node-actions';
+
+    if (isContainer) {
+      const addChildBtn = document.createElement('button');
+      addChildBtn.className = 'icon-btn';
+      addChildBtn.textContent = '+';
+      addChildBtn.title = 'Add child field';
+      addChildBtn.onclick = () => {
+        nodes.push(createNode(node.id));
+        node.collapsed = false;
+        render();
+      };
+      actions.appendChild(addChildBtn);
+    }
+
+    const addSiblingBtn = document.createElement('button');
+    addSiblingBtn.className = 'icon-btn';
+    addSiblingBtn.textContent = 'n'; // newline symbol placeholder
+    addSiblingBtn.title = 'Add sibling field';
+    addSiblingBtn.onclick = () => { nodes.push(createNode(node.parentId)); render(); };
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'icon-btn delete';
+    deleteBtn.textContent = 'x';
+    deleteBtn.title = 'Delete field';
+    deleteBtn.onclick = () => {
+      const ids = [node.id, ...getDescendants(node.id).map(d => d.id)];
+      nodes = nodes.filter(n => !ids.includes(n.id));
+      render();
+    };
+
+    actions.appendChild(addSiblingBtn);
+    actions.appendChild(deleteBtn);
+
+    div.append(bar, handle, collapseBtn, keyInput, colon, typeSelect, valueInput, actions);
+    wrapper.appendChild(div);
+
+    // Render children below the row when expanded.
+    if (!node.collapsed && isContainer) {
+      for (const child of children) {
+        wrapper.appendChild(renderNode(child));
+      }
+    }
+
+    setupDrag(div, node);
+    return wrapper;
+  }
+
+  // ── Drag and drop ─────────────────────────────────────────────────────────
+  //
+  // Dropping in the top third of a row places the dragged node before that row
+  // (same parent). Dropping in the bottom third of a container row makes it a
+  // child of that container. Dropping in the middle places it after the row.
+
+  let dragId = null;
+
+  function setupDrag(el, node) {
+    el.addEventListener('dragstart', e => {
+      dragId = node.id;
+      el.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.stopPropagation();
+    });
+
+    el.addEventListener('dragend', () => {
+      el.classList.remove('dragging');
+      document.querySelectorAll('.node').forEach(n =>
+        n.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child')
+      );
+      dragId = null;
+    });
+
+    el.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (dragId === null || dragId === node.id) return;
+
+      // Do not allow dropping into one of the node's own descendants.
+      const descIds = getDescendants(dragId).map(d => d.id);
+      if (descIds.includes(node.id)) return;
+
+      document.querySelectorAll('.node').forEach(n =>
+        n.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child')
+      );
+
+      const { top, height } = el.getBoundingClientRect();
+      const relY = e.clientY - top;
+      const third = height / 3;
+      const isContainer = node.type === 'object' || node.type === 'array';
+
+      if (relY < third) {
+        el.classList.add('drag-over-top');
+      } else if (relY > height - third && isContainer) {
+        el.classList.add('drag-over-child');
+      } else {
+        el.classList.add('drag-over-bottom');
+      }
+    });
+
+    el.addEventListener('dragleave', () => {
+      el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child');
+    });
+
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (dragId === null || dragId === node.id) return;
+
+      const descIds = getDescendants(dragId).map(d => d.id);
+      if (descIds.includes(node.id)) return;
+
+      const dragNode = nodes.find(n => n.id === dragId);
+      const { top, height } = el.getBoundingClientRect();
+      const relY = e.clientY - top;
+      const third = height / 3;
+      const isContainer = node.type === 'object' || node.type === 'array';
+
+      // Remove from current position first.
+      nodes = nodes.filter(n => n.id !== dragId);
+      const targetIdx = nodes.findIndex(n => n.id === node.id);
+
+      if (relY < third) {
+        // Place before target, same parent.
+        dragNode.parentId = node.parentId;
+        nodes.splice(targetIdx, 0, dragNode);
+      } else if (relY > height - third && isContainer) {
+        // Make it a child of the target.
+        dragNode.parentId = node.id;
+        node.collapsed = false;
+        nodes.splice(targetIdx + 1, 0, dragNode);
+      } else {
+        // Place after target, same parent.
+        dragNode.parentId = node.parentId;
+        nodes.splice(targetIdx + 1, 0, dragNode);
+      }
+
+      el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child');
+      render();
+    });
+  }
+
+  // ── Preview panel ─────────────────────────────────────────────────────────
+
+  function updatePreview() {
+    const el = document.getElementById('preview-content');
+    if (el) el.textContent = JSON.stringify(buildJSON(null), null, 2);
+  }
+
+  function togglePreview() {
+    document.getElementById('preview-panel').classList.toggle('visible');
+    updatePreview();
+  }
+
+  // ── File operations ───────────────────────────────────────────────────────
+  //
+  // When running inside Tauri the app uses the native file system dialog.
+  // When opened as a plain HTML file in a browser it falls back to a standard
+  // download / file input.
+
+  const isTauri = () => typeof window !== 'undefined' && !!window.__TAURI__;
+
+  async function saveJSON() {
+    const content = JSON.stringify(buildJSON(null), null, 2);
+
+    if (isTauri()) {
+      try {
+        const { save } = window.__TAURI__.dialog;
+        const { writeTextFile } = window.__TAURI__.fs;
+
+        const filePath = await save({
+          title: 'Save JSON file',
+          defaultPath: currentFilePath || 'data.json',
+          filters: [{ name: 'JSON', extensions: ['json'] }],
+        });
+
+        if (filePath) {
+          await writeTextFile(filePath, content);
+          currentFilePath = filePath;
+          updateFileLabel(filePath);
+          showToast('File saved');
+        }
+      } catch (err) {
+        showToast('Error saving file: ' + err.message);
+      }
+    } else {
+      // Browser fallback: trigger a file download.
+      const blob = new Blob([content], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'data.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('File downloaded');
+    }
+  }
+
+  async function openJSON() {
+    if (isTauri()) {
+      try {
+        const { open } = window.__TAURI__.dialog;
+        const { readTextFile } = window.__TAURI__.fs;
+
+        const filePath = await open({
+          title: 'Open JSON file',
+          multiple: false,
+          filters: [{ name: 'JSON', extensions: ['json'] }],
+        });
+
+        if (filePath) {
+          const raw  = await readTextFile(filePath);
+          const json = JSON.parse(raw);
+          nodes = [];
+          nextId = 1;
+          loadFromJSON(json, null);
+          currentFilePath = filePath;
+          updateFileLabel(filePath);
+          render();
+          showToast('File opened');
+        }
+      } catch (err) {
+        showToast('Error opening file: ' + err.message);
+      }
+    } else {
+      // Browser fallback: file input element.
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json,application/json';
+      input.onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+          try {
+            const json = JSON.parse(ev.target.result);
+            nodes = [];
+            nextId = 1;
+            loadFromJSON(json, null);
+            updateFileLabel(file.name);
+            render();
+            showToast('File loaded');
+          } catch {
+            showToast('Invalid JSON file');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  function addRootNode() {
+    nodes.push(createNode(null));
+    render();
+  }
+
+  function clearAll() {
+    if (nodes.length === 0) return;
+    if (!confirm('Clear all fields?')) return;
+    nodes = [];
+    nextId = 1;
+    currentFilePath = null;
+    updateFileLabel(null);
+    render();
+  }
+
+  function updateFileLabel(path) {
+    const el = document.getElementById('file-label');
+    if (!path) {
+      el.textContent = 'No file open';
+    } else {
+      // Show only the file name, not the full path.
+      el.textContent = path.split(/[\\/]/).pop();
+    }
+  }
+
+  let toastTimer = null;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  // ── Startup ───────────────────────────────────────────────────────────────
+  //
+  // Load a small example so the user can see how the editor works immediately.
+
+  (function initExample() {
+    nodes = [];
+    nextId = 1;
+
+    const root = (key, type, value = '') => {
+      const n = createNode(null);
+      n.key = key; n.type = type; n.value = value;
+      return n;
+    };
+
+    const child = (parentId, key, type, value = '') => {
+      const n = createNode(parentId);
+      n.key = key; n.type = type; n.value = value;
+      return n;
+    };
+
+    const name    = root('name',    'string',  'Alice Johnson');
+    const age     = root('age',     'number',  '31');
+    const active  = root('active',  'boolean', 'true');
+    const address = root('address', 'object');
+    nodes.push(name, age, active, address);
+
+    nodes.push(
+      child(address.id, 'street', 'string', '14 Elm Street'),
+      child(address.id, 'city',   'string', 'London'),
+      child(address.id, 'zip',    'string', 'EC1A 1BB'),
+    );
+
+    const tags = root('tags', 'array');
+    nodes.push(tags);
+    nodes.push(
+      child(tags.id, '0', 'string', 'admin'),
+      child(tags.id, '1', 'string', 'verified'),
+    );
+
+    render();
+  })();
+</script>
+</body>
+</html>
