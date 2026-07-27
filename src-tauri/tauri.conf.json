@@ -1,6 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "build": {
+    "devPath": "../src",
     "distDir": "../src",
     "withGlobalTauri": true
   },
