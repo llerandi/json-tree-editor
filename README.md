@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/llerandi/json-tree-editor/actions/workflows/ci.yaml/badge.svg)](https://github.com/llerandi/json-tree-editor/actions/workflows/ci.yaml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tauri v2](https://img.shields.io/badge/tauri-v2-blue?logo=tauri&logoColor=white)](https://tauri.app)
+[![Tauri v1](https://img.shields.io/badge/tauri-v1-blue?logo=tauri&logoColor=white)](https://tauri.app)
 [![Rust](https://img.shields.io/badge/rust-stable-orange?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Platform](https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux-lightgrey)](#building-for-production)
 
@@ -53,7 +53,7 @@ rustc --version
 Once Rust is installed, run:
 
 ```
-cargo install tauri-cli --version "^2.0" --locked
+cargo install tauri-cli --version "^1.0" --locked
 ```
 
 This downloads and compiles the CLI. It may take a few minutes the first time.
