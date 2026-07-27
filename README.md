@@ -89,11 +89,11 @@ A dialog will appear asking you to confirm. Click **Install** and wait for it to
 
 Install the system packages that Tauri needs. The exact command depends on your distribution.
 
-**Ubuntu / Debian:**
+**Ubuntu 22.04 / Debian:**
 
 ```
 sudo apt update
-sudo apt install libwebkit2gtk-4.1-dev \
+sudo apt install libwebkit2gtk-4.0-dev \
   build-essential \
   curl \
   wget \
