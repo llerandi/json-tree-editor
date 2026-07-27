@@ -141,11 +141,9 @@ sudo pacman -Syu webkit2gtk-4.1 \
 Clone the repository:
 
 ```
-git clone https://github.com/your-username/json-tree-editor.git
+git clone https://github.com/llerandi/json-tree-editor.git
 cd json-tree-editor
 ```
-
-Replace `your-username` with your GitHub username.
 
 ---
 
