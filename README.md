@@ -89,11 +89,11 @@ A dialog will appear asking you to confirm. Click **Install** and wait for it to
 
 Install the system packages that Tauri needs. The exact command depends on your distribution.
 
-**Ubuntu / Debian:**
+**Ubuntu 22.04 / Debian:**
 
 ```
 sudo apt update
-sudo apt install libwebkit2gtk-4.1-dev \
+sudo apt install libwebkit2gtk-4.0-dev \
   build-essential \
   curl \
   wget \
@@ -106,7 +106,7 @@ sudo apt install libwebkit2gtk-4.1-dev \
 **Fedora:**
 
 ```
-sudo dnf install webkit2gtk4.1-devel \
+sudo dnf install webkit2gtk3-devel \
   openssl-devel \
   curl \
   wget \
@@ -119,7 +119,7 @@ sudo dnf group install "C Development Tools and Libraries"
 **Arch Linux:**
 
 ```
-sudo pacman -Syu webkit2gtk-4.1 \
+sudo pacman -Syu webkit2gtk \
   base-devel \
   curl \
   wget \
@@ -143,7 +143,7 @@ cd json-tree-editor
 
 ## Running in development
 
-Start the app in development mode. The window opens immediately and reloads when you save changes to `src/index.html`.
+Start the app in development mode. The window opens immediately and reloads when you save changes to `src/index.html` or `src/main.js`.
 
 ```
 cargo tauri dev
@@ -175,19 +175,17 @@ The output is placed in `src-tauri/target/release/bundle/`.
 json-tree-editor/
 ├── docs/
 │   └── img/
-│       └── app.png             # Screenshot used in this README
+│       └── app.png         # Screenshot used in this README
 ├── src/
-│   └── index.html              # The entire frontend: HTML, CSS, and JavaScript
+│   ├── index.html          # HTML structure and styles
+│   └── main.js             # All application logic
 ├── src-tauri/
-│   ├── capabilities/
-│   │   └── default.json        # Declares which Tauri APIs the frontend can call
-│   ├── icons/                  # App icons for all platforms
+│   ├── icons/              # App icons for all platforms
 │   ├── src/
-│   │   ├── main.rs             # Entry point: starts the Tauri event loop
-│   │   └── lib.rs              # Registers plugins (file dialog, file system)
-│   ├── build.rs                # Build-time code generation required by Tauri
-│   ├── Cargo.toml              # Rust dependencies
-│   └── tauri.conf.json         # App name, window size, bundle settings
+│   │   └── main.rs         # Entry point: starts the Tauri event loop
+│   ├── build.rs            # Build-time code generation required by Tauri
+│   ├── Cargo.toml          # Rust dependencies
+│   └── tauri.conf.json     # App name, window size, permissions, bundle settings
 ├── .gitignore
 └── README.md
 ```

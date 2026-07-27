@@ -1,14 +1,14 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "build": {
-    "distDir": "../src"
+    "distDir": "../src",
+    "withGlobalTauri": true
   },
   "package": {
     "productName": "JSON Tree Editor",
     "version": "0.1.0"
   },
   "tauri": {
-    "withGlobalTauri": true,
     "allowlist": {
       "all": false,
       "dialog": {
