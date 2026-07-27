@@ -26,6 +26,8 @@ Built with [Tauri](https://tauri.app/) (Rust backend, plain HTML/JS frontend).
 - Use **Save JSON** to write the result to disk using a native save dialog.
 - The **Preview** panel shows the resulting JSON in real time.
 
+![JSON Tree Editor screenshot](docs/img/app.png)
+
 ---
 
 ## Prerequisites
