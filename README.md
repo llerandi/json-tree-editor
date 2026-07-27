@@ -89,7 +89,9 @@ A dialog will appear asking you to confirm. Click **Install** and wait for it to
 
 Install the system packages that Tauri needs. The exact command depends on your distribution.
 
-**Ubuntu / Debian:**
+**Ubuntu 22.04 / Debian 11 or earlier:**
+
+Note: `libwebkit2gtk-4.0-dev` is not available on Ubuntu 24.04 or later. Use Ubuntu 22.04 (Jammy) or Debian 11 (Bullseye) to build this project on Linux.
 
 ```
 sudo apt update
