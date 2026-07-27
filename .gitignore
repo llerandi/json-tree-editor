@@ -1,0 +1,17 @@
+# Rust build output
+target/
+
+# Tauri build output
+src-tauri/target/
+
+# Node (if you add a frontend build step later)
+node_modules/
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor folders
+.vscode/
+.idea/
