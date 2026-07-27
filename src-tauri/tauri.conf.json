@@ -1,13 +1,40 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
-  "productName": "JSON Tree Editor",
-  "version": "0.1.0",
-  "identifier": "com.treeform.json-tree-editor",
+  "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "build": {
-    "frontendDist": "../src"
+    "distDir": "../src"
   },
-  "app": {
+  "package": {
+    "productName": "JSON Tree Editor",
+    "version": "0.1.0"
+  },
+  "tauri": {
     "withGlobalTauri": true,
+    "allowlist": {
+      "all": false,
+      "dialog": {
+        "save": true,
+        "open": true
+      },
+      "fs": {
+        "readFile": true,
+        "writeFile": true,
+        "scope": ["**"]
+      }
+    },
+    "bundle": {
+      "active": true,
+      "identifier": "com.treeform.json-tree-editor",
+      "icon": [
+        "icons/32x32.png",
+        "icons/128x128.png",
+        "icons/128x128@2x.png",
+        "icons/icon.icns",
+        "icons/icon.ico"
+      ]
+    },
+    "security": {
+      "csp": null
+    },
     "windows": [
       {
         "title": "JSON Tree Editor",
@@ -17,20 +44,6 @@
         "minHeight": 400,
         "resizable": true
       }
-    ],
-    "security": {
-      "csp": null
-    }
-  },
-  "bundle": {
-    "active": true,
-    "targets": "all",
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
     ]
   }
 }
