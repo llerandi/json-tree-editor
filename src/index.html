@@ -71,10 +71,27 @@
     }
     .node:hover { border-color: #353a55; }
 
-    .node.dragging          { opacity: 0.35; }
     .node.drag-over-top    { border-top: 2px solid #4f6ef7; }
     .node.drag-over-bottom { border-bottom: 2px solid #4f6ef7; }
     .node.drag-over-child  { border: 1px solid #4f6ef7; box-shadow: 0 0 0 2px rgba(79,110,247,0.2); }
+
+    /* Ghost label that follows the cursor while dragging */
+    .drag-ghost {
+      position: fixed;
+      pointer-events: none;
+      background: #252a3d;
+      border: 1px solid #4f6ef7;
+      border-radius: 6px;
+      color: #a0b8ff;
+      font-size: 0.82rem;
+      padding: 4px 10px;
+      z-index: 300;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Block text selection while a drag is in progress */
+    body.drag-active { user-select: none; }
 
     .indent-bar { width: 3px; height: 28px; border-radius: 2px; flex-shrink: 0; }
     .depth-0 .indent-bar { background: transparent; }
