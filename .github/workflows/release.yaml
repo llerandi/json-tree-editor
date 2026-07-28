@@ -16,12 +16,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Apple Silicon (M1/M2/M3)
+          # Universal binary: runs on both Apple Silicon and Intel
           - platform: macos-latest
-            args: ''
-          # Intel Mac
-          - platform: macos-13
-            args: ''
+            args: '--target universal-apple-darwin'
           - platform: ubuntu-22.04
             args: ''
           - platform: windows-latest
@@ -46,6 +43,10 @@ jobs:
 
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Add Intel target for universal macOS binary
+        if: matrix.platform == 'macos-latest'
+        run: rustup target add x86_64-apple-darwin
 
       - name: Cache Cargo registry and build artifacts
         uses: actions/cache@v4
