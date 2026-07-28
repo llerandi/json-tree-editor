@@ -183,6 +183,8 @@ To replace the app icon, run `cargo tauri icon your-image.png` with a square PNG
 | Portable `.exe` for Windows -- run without installing | v0.2.0 |
 | Undo / Redo (Ctrl+Z / Ctrl+Y) | v0.3.0 |
 | Search -- filter nodes by key name | v0.3.0 |
+| Export the current JSON as a CSV file | v0.4.0 |
+| Theme and accent color picker | v0.5.0 |
 
 ---
 
