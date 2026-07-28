@@ -1,5 +1,6 @@
 # JSON Tree Editor
 
+[![Version](https://img.shields.io/github/v/release/llerandi/json-tree-editor)](https://github.com/llerandi/json-tree-editor/releases)
 [![CI](https://github.com/llerandi/json-tree-editor/actions/workflows/ci.yaml/badge.svg)](https://github.com/llerandi/json-tree-editor/actions/workflows/ci.yaml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Tauri v1](https://img.shields.io/badge/tauri-v1-blue?logo=tauri&logoColor=white)](https://tauri.app)
@@ -169,6 +170,19 @@ json-tree-editor/
 ```
 
 To replace the app icon, run `cargo tauri icon your-image.png` with a square PNG of at least 1024x1024 pixels.
+
+---
+
+## Roadmap
+
+| Feature | Planned version |
+|---|---|
+| Ctrl+S to save to the current file without reopening the dialog | v0.2.0 |
+| Duplicate node -- copy a field or an entire subtree in one click | v0.2.0 |
+| Array items with automatic index keys -- no need to type 0, 1, 2 by hand | v0.2.0 |
+| Portable `.exe` for Windows -- run without installing | v0.2.0 |
+| Undo / Redo (Ctrl+Z / Ctrl+Y) | v0.3.0 |
+| Search -- filter nodes by key name | v0.3.0 |
 
 ---
 
