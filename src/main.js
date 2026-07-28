@@ -159,7 +159,6 @@ function renderNode(node) {
   // The visible row.
   const div = document.createElement('div');
   div.className = `node depth-${Math.min(depth, 4)}`;
-  div.draggable = true;
   div.dataset.id = node.id;
 
   // Colour bar on the left -- its colour changes with depth.
@@ -274,91 +273,150 @@ function renderNode(node) {
 
 // ── Drag and drop ─────────────────────────────────────────────────────────
 //
-// Dropping in the top third of a row places the dragged node before that row
-// (same parent). Dropping in the bottom third of a container row makes it a
-// child of that container. Dropping in the middle places it after the row.
+// Uses pointer events (mousedown/mousemove/mouseup) instead of the HTML5
+// Drag and Drop API. WebView2 on Windows does not fire dragstart reliably
+// when draggable is set via JavaScript on divs that contain input elements,
+// so the HTML5 approach silently drops all events there.
+//
+// Only the drag handle triggers a drag. During the move a small ghost label
+// follows the cursor. On release, the position within the target row decides
+// where the node lands:
+//   top third    -> place before the target row (same parent)
+//   bottom third -> make a child of the target (containers only)
+//   middle       -> place after the target row (same parent)
 
-let dragId = null;
+let dragId     = null;
+let dragGhost  = null;
+let dragOverEl = null; // the .node element currently highlighted
+let dragZone   = null; // 'top' | 'middle' | 'child'
 
 function setupDrag(el, node) {
-  el.addEventListener('dragstart', e => {
+  const handle = el.querySelector('.drag-handle');
+  if (!handle) return;
+
+  handle.addEventListener('mousedown', e => {
+    if (e.button !== 0) return; // primary button only
+    e.preventDefault();
+    e.stopPropagation();
+
     dragId = node.id;
-    el.classList.add('dragging');
-    e.dataTransfer.effectAllowed = 'move';
-    e.stopPropagation();
-  });
+    document.body.classList.add('drag-active');
 
-  el.addEventListener('dragend', () => {
-    el.classList.remove('dragging');
-    document.querySelectorAll('.node').forEach(n =>
-      n.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child')
-    );
+    // Floating ghost label that follows the cursor.
+    dragGhost = document.createElement('div');
+    dragGhost.className = 'drag-ghost';
+    dragGhost.textContent = node.key || '(unnamed)';
+    dragGhost.style.left = e.clientX + 14 + 'px';
+    dragGhost.style.top  = e.clientY + 4  + 'px';
+    document.body.appendChild(dragGhost);
+
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup',   onDragEnd);
+  });
+}
+
+function onDragMove(e) {
+  if (dragId === null) return;
+
+  // Keep ghost next to cursor.
+  if (dragGhost) {
+    dragGhost.style.left = e.clientX + 14 + 'px';
+    dragGhost.style.top  = e.clientY + 4  + 'px';
+  }
+
+  // Temporarily hide the ghost so elementFromPoint sees what is behind it.
+  if (dragGhost) dragGhost.style.visibility = 'hidden';
+  const hit = document.elementFromPoint(e.clientX, e.clientY);
+  if (dragGhost) dragGhost.style.visibility = '';
+
+  const nodeEl = hit && hit.closest('.node[data-id]');
+
+  // Clear highlight on the previously hovered row.
+  if (dragOverEl && dragOverEl !== nodeEl) {
+    dragOverEl.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child');
+  }
+
+  if (!nodeEl) {
+    dragOverEl = null;
+    dragZone   = null;
+    return;
+  }
+
+  const targetId = parseInt(nodeEl.dataset.id, 10);
+  if (targetId === dragId || getDescendants(dragId).some(d => d.id === targetId)) {
+    dragOverEl = null;
+    dragZone   = null;
+    return;
+  }
+
+  const targetNode  = nodes.find(n => n.id === targetId);
+  const isContainer = targetNode && (targetNode.type === 'object' || targetNode.type === 'array');
+
+  const { top, height } = nodeEl.getBoundingClientRect();
+  const relY  = e.clientY - top;
+  const third = height / 3;
+
+  nodeEl.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child');
+
+  if (relY < third) {
+    nodeEl.classList.add('drag-over-top');
+    dragZone = 'top';
+  } else if (relY > height - third && isContainer) {
+    nodeEl.classList.add('drag-over-child');
+    dragZone = 'child';
+  } else {
+    nodeEl.classList.add('drag-over-bottom');
+    dragZone = 'middle';
+  }
+
+  dragOverEl = nodeEl;
+}
+
+function onDragEnd() {
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup',   onDragEnd);
+  document.body.classList.remove('drag-active');
+
+  if (dragGhost) { dragGhost.remove(); dragGhost = null; }
+
+  if (dragOverEl) {
+    dragOverEl.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child');
+  }
+
+  const targetEl = dragOverEl;
+  const zone     = dragZone;
+  dragOverEl = null;
+  dragZone   = null;
+
+  if (dragId === null || targetEl === null || zone === null) {
     dragId = null;
-  });
+    return;
+  }
 
-  el.addEventListener('dragover', e => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (dragId === null || dragId === node.id) return;
+  const targetId   = parseInt(targetEl.dataset.id, 10);
+  const dragNode   = nodes.find(n => n.id === dragId);
+  const targetNode = nodes.find(n => n.id === targetId);
+  dragId = null;
 
-    // Do not allow dropping into one of the node's own descendants.
-    const descIds = getDescendants(dragId).map(d => d.id);
-    if (descIds.includes(node.id)) return;
+  if (!dragNode || !targetNode) return;
+  if (getDescendants(dragNode.id).some(d => d.id === targetId)) return;
 
-    document.querySelectorAll('.node').forEach(n =>
-      n.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child')
-    );
+  nodes = nodes.filter(n => n.id !== dragNode.id);
+  const targetIdx = nodes.findIndex(n => n.id === targetId);
 
-    const { top, height } = el.getBoundingClientRect();
-    const relY = e.clientY - top;
-    const third = height / 3;
-    const isContainer = node.type === 'object' || node.type === 'array';
+  if (zone === 'top') {
+    dragNode.parentId = targetNode.parentId;
+    nodes.splice(targetIdx, 0, dragNode);
+  } else if (zone === 'child') {
+    dragNode.parentId = targetId;
+    targetNode.collapsed = false;
+    nodes.splice(targetIdx + 1, 0, dragNode);
+  } else {
+    dragNode.parentId = targetNode.parentId;
+    nodes.splice(targetIdx + 1, 0, dragNode);
+  }
 
-    if (relY < third) {
-      el.classList.add('drag-over-top');
-    } else if (relY > height - third && isContainer) {
-      el.classList.add('drag-over-child');
-    } else {
-      el.classList.add('drag-over-bottom');
-    }
-  });
-
-  el.addEventListener('dragleave', () => {
-    el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child');
-  });
-
-  el.addEventListener('drop', e => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (dragId === null || dragId === node.id) return;
-
-    const descIds = getDescendants(dragId).map(d => d.id);
-    if (descIds.includes(node.id)) return;
-
-    const dragNode = nodes.find(n => n.id === dragId);
-    const { top, height } = el.getBoundingClientRect();
-    const relY = e.clientY - top;
-    const third = height / 3;
-    const isContainer = node.type === 'object' || node.type === 'array';
-
-    nodes = nodes.filter(n => n.id !== dragId);
-    const targetIdx = nodes.findIndex(n => n.id === node.id);
-
-    if (relY < third) {
-      dragNode.parentId = node.parentId;
-      nodes.splice(targetIdx, 0, dragNode);
-    } else if (relY > height - third && isContainer) {
-      dragNode.parentId = node.id;
-      node.collapsed = false;
-      nodes.splice(targetIdx + 1, 0, dragNode);
-    } else {
-      dragNode.parentId = node.parentId;
-      nodes.splice(targetIdx + 1, 0, dragNode);
-    }
-
-    el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-child');
-    render();
-  });
+  render();
 }
 
 // ── Preview panel ─────────────────────────────────────────────────────────

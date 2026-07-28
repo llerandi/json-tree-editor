@@ -20,6 +20,14 @@ Pre-built installers for Windows, macOS, and Linux are available on the [Release
 - **macOS**: download the `.dmg` disk image.
 - **Linux**: download the `.AppImage` or `.deb` package.
 
+**macOS note:** if you see a message saying the app is damaged, macOS is blocking it because it is not signed with an Apple certificate. To open it, run this command in Terminal:
+
+```
+xattr -cr "/Applications/JSON Tree Editor.app"
+```
+
+If you did not move the app to Applications, replace the path with wherever the `.app` file is located.
+
 ---
 
 ## How it works

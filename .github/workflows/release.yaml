@@ -15,7 +15,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest, ubuntu-22.04, windows-latest]
+        include:
+          # Apple Silicon (M1/M2/M3)
+          - platform: macos-latest
+            args: ''
+          # Intel Mac
+          - platform: macos-13
+            args: ''
+          - platform: ubuntu-22.04
+            args: ''
+          - platform: windows-latest
+            args: ''
 
     runs-on: ${{ matrix.platform }}
 
@@ -44,9 +54,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             src-tauri/target
-          key: ${{ runner.os }}-release-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ matrix.platform }}-release-cargo-${{ hashFiles('src-tauri/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-release-cargo-
+            ${{ runner.os }}-${{ matrix.platform }}-release-cargo-
 
       - name: Build and upload to release
         uses: tauri-apps/tauri-action@v0
@@ -58,3 +68,4 @@ jobs:
           releaseBody: 'Download the installer for your platform below.'
           releaseDraft: true
           prerelease: false
+          args: ${{ matrix.args }}
